@@ -11,7 +11,7 @@ function webdav_wp_backup_test_webdav() {
     $username = get_option('webdav_wp_backup_username');
     $password = get_option('webdav_wp_backup_password');
 
-    // Проверка и исправление URL
+    // Validate and normalize the URL
     if (substr($remote_url, -1) !== '/') {
         $remote_url .= '/';
     }
@@ -20,18 +20,18 @@ function webdav_wp_backup_test_webdav() {
     curl_setopt($curl, CURLOPT_URL, $remote_url);
     curl_setopt($curl, CURLOPT_USERPWD, "$username:$password");
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // Следовать за перенаправлениями
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false); // Игнорировать проверку SSL сертификата
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false); // Игнорировать проверку SSL хоста
-    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PROPFIND'); // Метод PROPFIND для WebDAV
-    curl_setopt($curl, CURLOPT_HEADER, true); // Включить заголовки в вывод
+    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true); // Follow redirects
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false); // Skip SSL certificate verification
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false); // Skip SSL host verification
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PROPFIND'); // PROPFIND method for WebDAV
+    curl_setopt($curl, CURLOPT_HEADER, true); // Include headers in the output
 
     $response = curl_exec($curl);
     $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-    $curl_error = curl_error($curl); // Получение текста ошибки от cURL
+    $curl_error = curl_error($curl); // Get the cURL error message
     curl_close($curl);
 
-    if ($http_code == 200 || $http_code == 207) { // 207 Multi-Status для WebDAV
+    if ($http_code == 200 || $http_code == 207) { // 207 Multi-Status for WebDAV
         wp_send_json_success('WebDAV connection successful!');
     } else {
         $message =  $http_code . ' - ' . $curl_error;

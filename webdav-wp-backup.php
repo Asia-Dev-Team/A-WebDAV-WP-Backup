@@ -118,34 +118,34 @@ function webdav_wp_backup_custom_cron_schedules($schedules) {
 }
 add_filter('cron_schedules', 'webdav_wp_backup_custom_cron_schedules');
 
-// Обработчик AJAX-запроса для планирования резервного копирования
+// AJAX handler for scheduling backups
 function webdav_wp_backup_schedule() {
-    // Проверяем права пользователя
+    // Check user capabilities
     if (!current_user_can('manage_options')) {
         wp_send_json_error('You do not have permission to perform this action.');
     }
 
-    // Отменяем текущие запланированные задания
+    // Cancel currently scheduled events
     $timestamp = wp_next_scheduled('automatic_backup_event');
     if ($timestamp) {
         wp_unschedule_event($timestamp, 'automatic_backup_event');
     }
 
-    // Получаем настройки частоты и задержки
-    $delay = get_option('webdav_wp_backup_delay_start', 0); // по умолчанию нет задержки
+    // Get frequency and delay settings
+    $delay = get_option('webdav_wp_backup_delay_start', 0); // no delay by default
 
-    // Вычисляем время следующего запуска
+    // Calculate the next run time
     $next_scheduled_time = time() + ($delay * HOUR_IN_SECONDS);
 
-    // Планируем событие резервного копирования с кастомным интервалом
+    // Schedule the backup event with a custom interval
     wp_schedule_event($next_scheduled_time, 'custom_backup_interval', 'automatic_backup_event');
     wp_send_json_success();
 }
 add_action('wp_ajax_webdav_wp_backup_schedule', 'webdav_wp_backup_schedule');
 
-// Функция для выполнения резервного копирования
+// Run the backup
 function automatic_backup_event_handler() {
-    // Здесь вызовите вашу существующую функцию создания резервной копии
+    // Call your existing backup creation function here
     webdav_wp_backup_create_backup('automatic');
 }
 add_action('automatic_backup_event', 'automatic_backup_event_handler');

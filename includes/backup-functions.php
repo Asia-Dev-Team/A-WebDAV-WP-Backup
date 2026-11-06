@@ -103,24 +103,24 @@ function webdav_wp_backup_create_backup($type = 'manual') {
             'error' => $error_message,
             'data' => [
                 'location' => $backup_dir,
-                'size' => round($backup_size / 1048576, 2), // Размер в MB
+                'size' => round($backup_size / 1048576, 2), // Size in MB
                 'time' => current_time('Y-m-d H:i:s'),
                 'webdav_success' => $webdav_success
             ]
         ];
     }
 
-    // Отправка email уведомления о завершении резервного копирования
+    // Send an email notification when the backup completes
     sleep(2);
     webdav_wp_backup_send_email_notification([
         'location' => $backup_dir,
-        'size' => round($backup_size / 1048576, 2), // Размер в MB
+        'size' => round($backup_size / 1048576, 2), // Size in MB
         'time' => current_time('Y-m-d H:i:s')
     ]);
 
     return ['success' => true, 'data' => [
         'location' => $backup_dir,
-        'size' => round($backup_size / 1048576, 2), // Размер в MB
+        'size' => round($backup_size / 1048576, 2), // Size in MB
         'time' => current_time('Y-m-d H:i:s'),
         'webdav_success' => $webdav_success
     ]];
@@ -130,7 +130,7 @@ function webdav_wp_backup_create_backup($type = 'manual') {
 function webdav_wp_backup_send_email_notification($backup_info) {
     $to = get_option('webdav_wp_backup_email');
     if (!$to) {
-        return; // Если email не задан, выходим из функции
+        return; // Exit if no email is set
     }
 
     $subject_prefix = get_option('webdav_wp_backup_email_prefix', get_bloginfo('name'));
@@ -162,7 +162,7 @@ function webdav_wp_backup_count_existing_backups($backup_dir) {
 
 // Function to add files to the zip archive
 function webdav_wp_backup_add_files_to_zip($zip, $folder, $parent_folder, $exclude_folder) {
-    // Логируем начальные данные
+    // Log the initial data
     // webdav_wp_backup_log('Starting to add files to zip. Folder: ' . $folder . ', Parent Folder: ' . $parent_folder);
 
     $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder), RecursiveIteratorIterator::LEAVES_ONLY);
@@ -174,10 +174,10 @@ function webdav_wp_backup_add_files_to_zip($zip, $folder, $parent_folder, $exclu
 
             if (strpos($filePath, $exclude_folder) === false) {
                 $relativePath = substr($filePath, strlen($folder));
-                $relativePath = ltrim($relativePath, '/'); // Удаляем начальный слеш, если он есть
+                $relativePath = ltrim($relativePath, '/'); // Remove the leading slash, if any
                 $finalPath = $parent_folder . '/' . $relativePath;
 
-                // Логируем относительный и конечный пути
+                // Log the relative and destination paths
                 // webdav_wp_backup_log('Relative path: ' . $relativePath);
                 // webdav_wp_backup_log('Final path in zip: ' . $finalPath);
 
@@ -291,15 +291,15 @@ function webdav_wp_backup_cleanup_old_webdav_backups($remote_keep) {
     $password = get_option('webdav_wp_backup_password');
 
     if (!is_numeric($remote_keep) || $remote_keep < 0) {
-        return; // Не выполнять очистку, если настройка некорректна
+        return; // Skip cleanup if the setting is invalid
     }
 
     if (!$remote_url || !$username || !$password) {
-        // webdav_wp_backup_log('WebDAV настройки не сконфигурированы.');
+        // webdav_wp_backup_log('WebDAV settings are not configured.');
         return;
     }
 
-    // Убедиться, что базовый URL корректно заканчивается '/'
+    // Make sure the base URL ends with '/'
     $remote_url = rtrim($remote_url, '/') . '/';
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_URL, $remote_url);
@@ -315,7 +315,7 @@ function webdav_wp_backup_cleanup_old_webdav_backups($remote_keep) {
     curl_close($curl);
 
     if ($http_code != 207) {
-        // webdav_wp_backup_log('Не удалось получить список файлов WebDAV: ' . $http_code . ' - ' . $curl_error);
+        // webdav_wp_backup_log('Failed to list WebDAV files: ' . $http_code . ' - ' . $curl_error);
         // webdav_wp_backup_log('PROPFIND response: ' . $response);
         return;
     }
@@ -325,7 +325,7 @@ function webdav_wp_backup_cleanup_old_webdav_backups($remote_keep) {
     // Load XML response
     $xml = simplexml_load_string($response);
     if ($xml === false) {
-        // webdav_wp_backup_log('Не удалось разобрать ответ PROPFIND.');
+        // webdav_wp_backup_log('Failed to parse the PROPFIND response.');
         foreach(libxml_get_errors() as $error) {
             // webdav_wp_backup_log('XML Error: ' . $error->message);
         }
@@ -337,11 +337,11 @@ function webdav_wp_backup_cleanup_old_webdav_backups($remote_keep) {
     $backups = [];
     foreach ($xml->children($namespaces['D'])->response as $response) {
         $file_url = (string) $response->children($namespaces['D'])->href;
-        // webdav_wp_backup_log('Обработка URL файла: ' . $file_url);
+        // webdav_wp_backup_log('Processing file URL: ' . $file_url);
 
         if (preg_match('/\.(zip|sql\.gz)$/', $file_url)) {
             $file_name = basename($file_url);
-            // Извлечение временной метки из имени файла
+            // Extract the timestamp from the file name
             $parts = explode('_', $file_name);
             if (count($parts) >= 4) {
                 $timestamp = $parts[2] . '_' . $parts[3];
@@ -372,9 +372,9 @@ function webdav_wp_backup_cleanup_old_webdav_backups($remote_keep) {
             curl_close($delete_curl);
 
             if ($delete_http_code == 200 || $delete_http_code == 204) {
-                // webdav_wp_backup_log('Удален старый файл резервной копии WebDAV: ' . $full_url);
+                // webdav_wp_backup_log('Deleted old WebDAV backup file: ' . $full_url);
             } else {
-                $delete_error_message = 'Не удалось удалить старый файл резервной копии WebDAV: ' . $full_url . ' - ' . $delete_http_code . ' - ' . $delete_curl_error;
+                $delete_error_message = 'Failed to delete old WebDAV backup file: ' . $full_url . ' - ' . $delete_http_code . ' - ' . $delete_curl_error;
                 // webdav_wp_backup_log($delete_error_message);
             }
         }
@@ -397,7 +397,7 @@ function webdav_wp_backup_list_backups() {
         return;
     }
 
-    // Сортировка файлов по дате и времени
+    // Sort files by date and time
     usort($files, function($a, $b) use ($backup_dir) {
         return filemtime($backup_dir . '/' . $b) - filemtime($backup_dir . '/' . $a);
     });
@@ -426,7 +426,7 @@ function webdav_wp_backup_list_backups() {
         echo '<ul>';
         foreach ($backup_files as $file) {
             $file_path = $backup_dir . '/' . $file;
-            $file_size = round(filesize($file_path) / 1048576, 2); // Размер в MB
+            $file_size = round(filesize($file_path) / 1048576, 2); // Size in MB
             $download_url = add_query_arg('webdav_wp_backup_download', urlencode($file), home_url());
             echo '<li>' . $file . ' (' . $file_size . ' MB) - <a href="' . esc_url($download_url) . '">Download</a></li>';
         }
@@ -441,7 +441,7 @@ function webdav_wp_backup_list_backups() {
 function webdav_wp_backup_get_next_scheduled_backup() {
     $timestamp = wp_next_scheduled('automatic_backup_event');
     if ($timestamp) {
-        // Используем дату WordPress вместо серверной даты
+        // Use the WordPress date instead of the server date
         return 'Next scheduled backup: ' . wp_date('Y-m-d H:i:s', $timestamp);
     } else {
         return 'No scheduled backups.';
@@ -461,7 +461,7 @@ function webdav_wp_backup_cleanup() {
     delete_option('webdav_wp_backup_email');
     delete_option('webdav_wp_backup_email_prefix');
 
-    // Удаление запланированных заданий
+    // Remove scheduled events
     $timestamp = wp_next_scheduled('webdav_wp_backup_daily_event');
     while ($timestamp) {
         wp_unschedule_event($timestamp, 'webdav_wp_backup_daily_event');
